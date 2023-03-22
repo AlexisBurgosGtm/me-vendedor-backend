@@ -2,6 +2,23 @@ const execute = require('./connection');
 const express = require('express');
 const router = express.Router();
 
+router.post("/get_codupdate", async(req,res)=>{
+    
+    const {sucursal} = req.body;
+    // app= sucusal
+    // K= CAMBIO DE PRODUCTO
+
+    let qry ='';
+
+     
+    qry = `SELECT TOP 1 ISNULL(ME_Productos.CODUPDATE,'NOCODE') AS CODUPDATE
+            FROM ME_Productos 
+            WHERE (ME_Productos.CODSUCURSAL = '${sucursal}') 
+            ` 
+            
+    execute.Query(res,qry);
+
+})
 
 
 router.get('/online_productos_subidos',async(req,res)=>{
@@ -206,7 +223,8 @@ router.post("/buscarproductotodos", async(req,res)=>{
                 ME_Marcas.DESMARCA, 
                 0 AS EXENTO, 
                 ISNULL(ME_PRODUCTOS.EXISTENCIA,0) AS EXISTENCIA,
-                ME_Productos.DESPROD3
+                ME_Productos.DESPROD3,
+                ISNULL(ME_Productos.CODUPDATE,'NOCODE') AS CODUPDATE
             FROM ME_Productos LEFT OUTER JOIN
                 ME_Marcas ON ME_Productos.CODSUCURSAL = ME_Marcas.CODSUCURSAL AND ME_Productos.CODMARCA = ME_Marcas.CODMARCA LEFT OUTER JOIN
                 ME_Precios ON ME_Productos.CODSUCURSAL = ME_Precios.CODSUCURSAL AND ME_Productos.CODPROD = ME_Precios.CODPROD
@@ -216,6 +234,7 @@ router.post("/buscarproductotodos", async(req,res)=>{
     execute.Query(res,qry);
 
 })
+
 
 // obtiene el total de temp ventas según sea el usuario
 router.get("/tempVentastotal", async(req,res)=>{

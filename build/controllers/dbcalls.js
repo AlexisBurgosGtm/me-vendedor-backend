@@ -13,7 +13,7 @@ document.getElementById('btnDownloadProductos').addEventListener('click',()=>{
                 .then(()=>{
                     let contador = 1;
                     let totalrows = Number(data.rowsAffected[0]);
-                      
+                    //SelectedCodUpdate = data.recordset[0].CODUPDATE.toString()  
                     data.recordset.map(async(rows)=>{
                         var datosdb = {
                             CODSUCURSAL:rows.CODSUCURSAL,
@@ -29,7 +29,8 @@ document.getElementById('btnDownloadProductos').addEventListener('click',()=>{
                             DESMARCA:rows.DESMARCA,
                             EXENTO:rows.EXENTO,
                             EXISTENCIA:rows.EXISTENCIA,
-                            DESPROD3:rows.DESPROD3
+                            DESPROD3:rows.DESPROD3,
+                            CODUPDATE:rows.CODUPDATE
                         }                
                         var noOfRowsInserted = await connection.insert({
                             into: "productos",
@@ -58,7 +59,7 @@ document.getElementById('btnDownloadProductos').addEventListener('click',()=>{
                 })
             })
             .catch(()=>{
-                console.log('no se descargó naa.')
+                console.log('no se descargó nada.')
                 hideWaitForm();
                 //$('#modalWait').modal('hide');
                 funciones.AvisoError('No se pudieron descargar los productos')
@@ -310,11 +311,13 @@ function updateDateDownload() {
             into: "credenciales",
             values: [{  DAYUPDATED:Number(f.getDate()),
                         USUARIO:GlobalUsuario,
-                        CODSUCURSAL:GlobalCodSucursal
+                        CODSUCURSAL:GlobalCodSucursal,
+                        CODUPDATE:update_cod_update
                     }] 
         })
         .then(()=>{
             GlobalSelectedDiaUpdated=Number(f.getDate());
+            SelectedLocalCodUpdate = update_cod_update;
             resolve();
         })
         .catch(()=>{
@@ -329,18 +332,18 @@ function selectDateDownload() {
     return new Promise(async(resolve,reject)=>{
         var response = await connection.select({
             from: "credenciales",
-            limit: 1,
-           
+            limit: 1
         });
         response.map((r)=>{
             GlobalSelectedDiaUpdated = Number(r.DAYUPDATED);
             GlobalCodSucursal = r.CODSUCURSAL;
+            SelectedLocalCodUpdate = r.CODUPDATE;
         })
         resolve(GlobalSelectedDiaUpdated)
     });
 };
 
-
+let update_cod_update = '';
 function downloadProductos (){
 
     return new Promise((resolve,reject)=>{
@@ -352,6 +355,7 @@ function downloadProductos (){
             if(data.rowsAffected[0]==0){
                 reject();
             }else{
+                update_cod_update = data.recordset[0].CODUPDATE.toString();
                 deleteDateDownload().then(()=>{updateDateDownload()})  
                 resolve(data);                         
             }
@@ -379,6 +383,35 @@ function deleteProductos(){
 };
 
 function selectProducto(filtro) {
+
+    return new Promise(async(resolve,reject)=>{
+        let f = new Date();
+        
+        if(GlobalSelectedDiaUpdated.toString()==f.getDate().toString()){
+
+            
+            var response = await connection.select({
+                from: "productos",
+                limit: 50,
+                where: {
+                    CODPROD: filtro,
+                    or: {
+                        DESPROD: {
+                            like: '%' + filtro + '%'
+                        }   
+                    }
+                }
+               
+            });
+            resolve(response)
+        }else{
+            reject('Debe actualizar su catálogo de productos...');
+        }
+        
+    });
+};
+
+function BACKUP_19_03_2023_selectProducto(filtro) {
 
     return new Promise(async(resolve,reject)=>{
         let f = new Date();
@@ -909,11 +942,12 @@ function dbSendPedido(id,idbtn){
                         axios.post('/ventas/insertventa', datos)
                         .then(async(response) => {
                             const data = response.data;
-                            if (data.rowsAffected[0]==0){
+                            //if (data.rowsAffected[0]==0){
+                            if (data.toString()=='error'){
                                 hideWaitForm();
                                 btn.disabled = false;
                                 btn.innerHTML = '<i class="fal fa-paper-plane"></i>Enviar';
-                                funciones.AvisoError('No se logró Enviar este pedido');   
+                                funciones.AvisoError('No se logró Enviar este pedido, verifique su número de correlativo o la señal de internet');   
                             }else{
                                 hideWaitForm();
                                 funciones.Aviso('Pedido Enviado Exitosamente !!!')

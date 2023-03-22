@@ -1,4 +1,4 @@
-let versionapp = 'Versión 12.2022';
+let versionapp = 'Versión 03.2023.21';
 
 let root = document.getElementById('root');
 let rootMenu = document.getElementById('rootMenu');
@@ -18,6 +18,8 @@ lbTipo.innerText = "Inicie sesión";
 
 let GlobalSelectedClientesDia ='SN';
 let GlobalSelectedDiaUpdated  = 0;
+let SelectedCodUpdate = '';
+let SelectedLocalCodUpdate = '';
 let GlobalObjetivoVenta = 0;
 let GlobalCodUsuario = 99999;
 let GlobalUsuario = 'MERCADOSEFECTIVOS';

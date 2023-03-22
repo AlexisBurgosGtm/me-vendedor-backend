@@ -1,4 +1,26 @@
 let apigen = {
+    config_get_codupdate: (sucursal)=>{
+        return new Promise((resolve,reject)=>{
+            axios.post('/ventas/get_codupdate',{
+               sucursal:sucursal
+            })
+            .then((response) => {
+                let data = response.data;
+                if(response=='error'){
+                    reject('NOCODE')
+                }else{
+                    if(Number(data.rowsAffected[0])>0){
+                        let code =data.recordset[0].CODUPDATE.toString(); 
+                        resolve(code);             
+                    }else{
+                        reject('NOCODE');
+                    }
+                }             
+            }, (error) => {
+                reject();
+            });
+        })
+    },
     getTotalProductosOnline: ()=>{
         
         return new Promise((resolve,reject)=>{
@@ -3427,5 +3449,5 @@ let apigen = {
             lbTotal.innerHTML = '-- --';
         });
            
-    },
+    }
 }

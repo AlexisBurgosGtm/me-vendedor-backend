@@ -1,4 +1,38 @@
 let funciones = {
+    beep(){
+       let duration = 500;
+       let type = 1;
+      
+          var ctxClass = window.audioContext ||window.AudioContext || window.AudioContext || window.webkitAudioContext
+          var ctx = new ctxClass();
+          return function (duration, type, finishedCallback) {
+
+              duration = +duration;
+
+              // Only 0-4 are valid types.
+              type = (type % 5) || 0;
+
+              if (typeof finishedCallback != "function") {
+                  finishedCallback = function () {};
+              }
+
+              var osc = ctx.createOscillator();
+
+              osc.type = type;
+              //osc.type = "sine";
+
+              osc.connect(ctx.destination);
+              if (osc.noteOn) osc.noteOn(0);
+              if (osc.start) osc.start();
+
+              setTimeout(function () {
+                  if (osc.noteOff) osc.noteOff(0);
+                  if (osc.stop) osc.stop();
+                  finishedCallback();
+              }, duration);
+
+          };
+    },
     convertDateNormal(date) {
       const [yy, mm, dd] = date.split(/-/g);
       return `${dd}/${mm}/${yy}`.replace('T00:00:00.000Z', '');
@@ -767,8 +801,24 @@ let funciones = {
       return fecha;
     },
     limpiarTexto: (texto) =>{
+      texto = texto.replace("'","");
+      texto = texto.replace("&","");
+      texto = texto.replace('"',"");
+      texto = texto.replace("$","");
+      texto = texto.replace("%","");
+      texto = texto.replace("/","");
+      texto = texto.replace("#","");
+      texto = texto.replace("*","");
+      texto = texto.replace('@',"");
+      texto = texto.replace(/(\r\n|\n|\r)/gm, "");
+      return texto;
+    },
+    limpiarTextoX: (texto) =>{
+      texto = texto.replace("'","");
+      texto = texto.replace("&","");
+      texto = texto.replace('"',"");
       var ignorarMayMin = true;
-      var reemplazarCon = " pulg";
+      var reemplazarCon = "";
       var reemplazarQue = '"';
       reemplazarQue = reemplazarQue.replace(/[\\^$.|?*+()[{]/g, "\\$&"),
       reemplazarCon = reemplazarCon.replace(/\$(?=[$&`"'\d])/g, "$$$$"),

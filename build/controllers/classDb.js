@@ -1,4 +1,4 @@
-const DbName = "mercadosefectivosoffline7";
+const DbName = "mercadosefectivosoffline9";
 
 var tblDocumentos = {
     name: 'documentos',
@@ -46,7 +46,8 @@ var tblProductos = {
         DESMARCA:{dataType: "string"},
         EXENTO:{dataType: "number"},
         EXISTENCIA:{dataType: "number"},
-        DESPROD3:{dataType: "string"}
+        DESPROD3:{dataType: "string"},
+        CODUPDATE:{dataType: "string"}
     }
 };
 
@@ -104,7 +105,8 @@ var tblCredenciales = {
         USUARIO:{dataType: "string"},
         PASS:{dataType: "string"},
         NIVEL:{dataType: "string"},
-        DAYUPDATED:{dataType: "number"}
+        DAYUPDATED:{dataType: "number"},
+        CODUPDATE:{dataType: "string"}
     }
 
 };

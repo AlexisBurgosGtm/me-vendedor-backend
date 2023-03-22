@@ -1438,15 +1438,12 @@ async function fcnGetDepartamentos(idContainer){
 
 async function fcnCargarComboTipoPrecio(){
    let cmbp = document.getElementById('cmbClienteTipoPrecio');
-   if(GlobalSistema=='ISC'){
-    cmbp.innerHTML =`<option value="P">PÚBLICO</option>
-                     <option value="M">MAYORISTA</option>`;
-   }else{
+  
     cmbp.innerHTML =`<option value="P">PÚBLICO</option>
                      <option value="C">MAYORISTA C</option>
                      <option value="B">MAYORISTA B</option>
                      <option value="A">MAYORISTA A</option>`;
-   }
+   
    
 };
 
@@ -1454,6 +1451,247 @@ async function fcnCargarComboTipoPrecio(){
 
 //FINALIZAR PEDIDO
 async function fcnFinalizarPedido(){
+    
+    if(Number(GlobalTotalDocumento)<Number(GlobalVentaMinima)){
+        funciones.AvisoError('Pedido menor al mínimo de venta');
+        try {
+            funciones.hablar('Advertencia. Este pedido es menor al mínimo de venta permitido');    
+        } catch (error) {          
+        }      
+    };
+
+    if(GlobalTotalDocumento==0){
+        funciones.AvisoError('Este pedido no tiene productos, revise por favor');
+        return;
+    };
+
+    if(GlobalSelectedCodCliente.toString()=='SI'){funciones.AvisoError('Datos del cliente incorrectos, por favor, seleccione cliente nuevamente');return;}
+
+    let codcliente = GlobalSelectedCodCliente;
+    let ClienteNombre = document.getElementById('txtNombre').value;
+    let dirclie = document.getElementById('txtDireccion').value; // CAMPO DIR_ENTREGA
+    let obs = funciones.limpiarTexto(document.getElementById('txtEntregaObs').value); 
+    let direntrega = "SN"; //document.getElementById('txtEntregaDireccion').value; //CAMPO MATSOLI
+    let codbodega = GlobalCodBodega;
+    let cmbTipoEntrega = document.getElementById('cmbEntregaConcre').value; //campo TRANSPORTE
+    let txtFecha = new Date(document.getElementById('txtFecha').value);
+    let anio = txtFecha.getFullYear();
+    let mes = txtFecha.getUTCMonth()+1;
+    let d = txtFecha.getUTCDate() 
+    let fecha = anio + '-' + mes + '-' + d; // CAMPO DOC_FECHA
+    let dia = d;
+    let hora = funciones.getHora();
+    let fe = txtFecha;// new Date(document.getElementById('txtEntregaFecha').value);
+    let ae = fe.getFullYear();
+    let me = fe.getUTCMonth()+1;
+    let de = fe.getUTCDate() 
+    let fechaentrega = ae + '-' + me + '-' + de;  // CAMPO DOC_FECHAENT
+    let coddoc = document.getElementById('cmbCoddoc').value;//GlobalCoddoc;
+    let correlativoDoc = document.getElementById('txtCorrelativo').value;
+    let cmbVendedor = document.getElementById('cmbVendedor');
+    let nit = document.getElementById('txtNit').value;
+    let latdoc = document.getElementById('lbDocLat').innerText;
+    let longdoc = document.getElementById('lbDocLong').innerText;
+
+
+    document.getElementById('btnFinalizarPedido').innerHTML = '<i class="fal fa-paper-plane mr-1 fa-spin"></i>';
+    document.getElementById('btnFinalizarPedido').disabled = true;
+
+    gettempDocproductos(GlobalUsuario)
+    .then((response)=>{
+        let docproductos_ped = response;  
+
+        //guarda el pedido localmente
+        var datospedido = {
+                CODSUCURSAL:GlobalCodSucursal,
+                EMPNIT: GlobalEmpnit,
+                CODDOC:coddoc,
+                ANIO:anio,
+                MES:mes,
+                DIA:dia,
+                FECHA:fecha,
+                FECHAENTREGA:fechaentrega,
+                FORMAENTREGA:cmbTipoEntrega,
+                CODCLIE: codcliente,
+                NOMCLIE:ClienteNombre,
+                TOTALCOSTO:GlobalTotalCostoDocumento,
+                TOTALPRECIO:GlobalTotalDocumento,
+                NITCLIE:nit,
+                DIRCLIE:dirclie,
+                OBS:obs,
+                DIRENTREGA:direntrega,
+                USUARIO:GlobalUsuario,
+                CODVEN:Number(cmbVendedor.value),
+                LAT:latdoc,
+                LONG:longdoc,
+                JSONPRODUCTOS:JSON.stringify(docproductos_ped)
+        };
+
+        //UNA VEZ OBTENIDO EL DETALLE, PROCEDE A GUARDARSE O ENVIARSE
+
+        //OBTIENE EL CORRELATIVO DEL DOCUMENTO
+        classTipoDocumentos.getCorrelativoDocumento('PED',GlobalCoddoc)
+        .then((correlativo)=>{
+            correlativoDoc = correlativo;             
+          
+            funciones.Confirmacion('¿Está seguro que desea Finalizar este Pedido')
+            .then((value)=>{
+                if(value==true){
+
+                    setLog(`<label class="text-danger">Creando el pedido a enviar...</label>`,'rootWait');
+                    $('#modalWait').modal('show');
+                                                
+                    //ENVIANDOLO ONLINE
+                        
+                        setLog(`<label class="text-info">Pedido creado, enviado pedido...</label>`,'rootWait');
+                                    
+                        axios.post('/ventas/insertventa', {
+                            jsondocproductos:JSON.stringify(response),
+                            codsucursal:GlobalCodSucursal,
+                            empnit: GlobalEmpnit,
+                            coddoc:coddoc,
+                            correl: correlativoDoc,
+                            anio:anio,
+                            mes:mes,
+                            dia:dia,
+                            fecha:fecha,
+                            fechaentrega:fechaentrega,
+                            formaentrega:cmbTipoEntrega,
+                            codbodega:codbodega,
+                            codcliente: codcliente,
+                            nomclie:ClienteNombre,
+                            totalcosto:GlobalTotalCostoDocumento,
+                            totalprecio:GlobalTotalDocumento,
+                            nitclie:nit,
+                            dirclie:dirclie,
+                            obs:obs,
+                            direntrega:direntrega,
+                            usuario:GlobalUsuario,
+                            codven:cmbVendedor.value,
+                            lat:latdoc,
+                            long:longdoc,
+                            hora:hora
+                        })
+                        .then(async(response) => {
+                            const data = response.data;
+                            //if (data.rowsAffected[0]==0){
+                            
+                            if(data.toString()=='error'){
+                                funciones.beep();
+                                setLog(`<label class="text-info">No se logró Enviar este pedido, se intentará guardarlo en el teléfono</label>`,'rootWait');
+                                                    
+                                insertVenta(datospedido)
+                                .then(async()=>{   
+                                    hideWaitForm();
+                                    document.getElementById('btnEntregaCancelar').click();                                                                                       
+                                    //actualiza la ubicación del empleado
+                                    await classEmpleados.updateMyLocation();           
+                                    //actualiza la última venta del cliente
+                                    apigen.updateClientesLastSale(nit,'VENTA');            
+                                    //elimina el temp ventas asociado al empleado
+                                    deleteTempVenta(GlobalUsuario)
+                                                                    
+                                    funciones.showToast('El pedido será guardado localmente, recuerde enviarlo');
+                                            
+                                    //prepara todo para un nuevo pedido
+                                    fcnNuevoPedido();
+                                })
+                                .catch(()=>{
+                                    hideWaitForm();    
+                                    
+                                    document.getElementById('btnFinalizarPedido').innerHTML = '<i class="fal fa-paper-plane mr-1"></i>Enviar';
+                                    document.getElementById('btnFinalizarPedido').disabled = false;
+
+                                    funciones.AvisoError('No se pudo guardar este pedido');
+                                })
+
+                            }else{
+                                            
+                                hideWaitForm();
+                                funciones.Aviso('Pedido Generado Exitosamente !!!')
+                                document.getElementById('btnEntregaCancelar').click();                                                           
+                                //actualiza la ubicación del empleado
+                                await classEmpleados.updateMyLocation();            
+                                //actualiza la última venta del cliente
+                                apigen.updateClientesLastSale(nit,'VENTA');
+                                //elimina el temp ventas asociado al empleado
+                                deleteTempVenta(GlobalUsuario)     
+                                //prepara todo para un nuevo pedido
+                                fcnNuevoPedido();
+                            }
+                        }, (error) => {
+                            console.log(error);
+                            setLog(`<label class="text-info">Ha ocurrido un error y no se pudo enviar, se intentará guardar en el teléfono</label>`,'rootWait');
+                                                                
+                            insertVenta(datospedido)
+                            .then(async()=>{
+                                document.getElementById('btnEntregaCancelar').click();
+                                //actualiza la ubicación del empleado
+                                await classEmpleados.updateMyLocation();
+                                //actualiza la última venta del cliente
+                                apigen.updateClientesLastSale(nit,'VENTA');
+                                //elimina el temp ventas asociado al empleado
+                                deleteTempVenta(GlobalUsuario)                                                                                                               
+                                funciones.showToast('El pedido será guardado localmente, recuerde enviarlo');
+                                //prepara todo para un nuevo pedido
+                                fcnNuevoPedido();                                                    
+                                hideWaitForm();
+                            })
+                            .catch(()=>{
+                                hideWaitForm();
+                                document.getElementById('btnFinalizarPedido').innerHTML = '<i class="fal fa-paper-plane mr-1"></i>Enviar';
+                                document.getElementById('btnFinalizarPedido').disabled = false;
+                                funciones.AvisoError('No se pudo guardar este pedido')
+                            }) 
+                        });        
+
+                    
+                }else{
+                    document.getElementById('btnFinalizarPedido').innerHTML = '<i class="fal fa-paper-plane mr-1"></i>Enviar';
+                    document.getElementById('btnFinalizarPedido').disabled = false;
+                }
+            })
+
+        })
+        .catch(()=>{
+                                            
+                setLog(`<label class="text-info">No se logró Enviar este pedido, se intentará guardarlo en el teléfono</label>`,'rootWait');
+                $('#modalWait').modal('show');
+                                                                                
+                insertVenta(datospedido)
+                .then(async()=>{
+                    hideWaitForm();
+                    document.getElementById('btnEntregaCancelar').click();                                                                                       
+                    //actualiza la ubicación del empleado
+                    await classEmpleados.updateMyLocation();
+                    //actualiza la última venta del cliente
+                    apigen.updateClientesLastSale(nit,'VENTA');
+                    //elimina el temp ventas asociado al empleado
+                    deleteTempVenta(GlobalUsuario)
+                    funciones.showToast('El pedido será guardado localmente, recuerde enviarlo');
+                    //prepara todo para un nuevo pedido
+                    fcnNuevoPedido();
+                
+                })                    
+        })
+
+    })
+    .catch((error)=>{
+        hideWaitForm();
+        document.getElementById('btnFinalizarPedido').innerHTML = '<i class="fal fa-paper-plane mr-1"></i>Enviar';
+        document.getElementById('btnFinalizarPedido').disabled = false;
+        funciones.AvisoError('No pude crear la tabla de productos del pedido ' + error);
+    })
+  
+};
+
+
+
+
+
+
+
+async function BACKUP_10_03_2023_fcnFinalizarPedido(){
     
     if(Number(GlobalTotalDocumento)<Number(GlobalVentaMinima)){
         funciones.AvisoError('Pedido menor al mínimo de venta');
@@ -1680,363 +1918,4 @@ async function fcnFinalizarPedido(){
         funciones.AvisoError('No pude crear la tabla de productos del pedido ' + error);
     })
   
-};
-
-
-
-//FINALIZAR PEDIDO
-async function BACKUP_fcnFinalizarPedido(){
-    
-    if(Number(GlobalTotalDocumento)<Number(GlobalVentaMinima)){
-        funciones.AvisoError('Pedido menor al mínimo de venta');
-        try {
-            funciones.hablar('Advertencia. Este pedido es menor al mínimo de venta permitido');    
-        } catch (error) {
-            
-        }
-        
-        //socket.emit('avisos','venta menor al minimo', `El vendedor ${GlobalUsuario} ha intentado ingresar un pedido de ${funciones.setMoneda(GlobalTotalDocumento,'Q')}`);
-    };
-
-    if(GlobalSelectedCodCliente.toString()=='SI'){funciones.AvisoError('Datos del cliente incorrectos, por favor, seleccione cliente nuevamente');return;}
-
-    //funciones.Aviso('cliente: ' + GlobalSelectedCodCliente.toString());
-
-    let codcliente = GlobalSelectedCodCliente;
-    let ClienteNombre = document.getElementById('txtNombre').value;
-    let dirclie = document.getElementById('txtDireccion').value; // CAMPO DIR_ENTREGA
-    let obs = document.getElementById('txtEntregaObs').value; 
-    let direntrega = "SN"; //document.getElementById('txtEntregaDireccion').value; //CAMPO MATSOLI
-    let codbodega = GlobalCodBodega;
-    let cmbTipoEntrega = document.getElementById('cmbEntregaConcre').value; //campo TRANSPORTE
-
-
-    let txtFecha = new Date(document.getElementById('txtFecha').value);
-    let anio = txtFecha.getFullYear();
-    let mes = txtFecha.getUTCMonth()+1;
-    let d = txtFecha.getUTCDate() 
-    let fecha = anio + '-' + mes + '-' + d; // CAMPO DOC_FECHA
-    let dia = d;
-
-    let hora = funciones.getHora();
-    
-    let fe = txtFecha;// new Date(document.getElementById('txtEntregaFecha').value);
-    let ae = fe.getFullYear();
-    let me = fe.getUTCMonth()+1;
-    let de = fe.getUTCDate() 
-    let fechaentrega = ae + '-' + me + '-' + de;  // CAMPO DOC_FECHAENT
-
-    let coddoc = document.getElementById('cmbCoddoc').value;//GlobalCoddoc;
-    let correlativoDoc = document.getElementById('txtCorrelativo').value;
-
-    let cmbVendedor = document.getElementById('cmbVendedor');
-
-    let nit = document.getElementById('txtNit').value;
-
-    let latdoc = document.getElementById('lbDocLat').innerText;
-    let longdoc = document.getElementById('lbDocLong').innerText;
-
-        document.getElementById('btnFinalizarPedido').innerHTML = '<i class="fal fa-paper-plane mr-1 fa-spin"></i>';
-        document.getElementById('btnFinalizarPedido').disabled = true;
-
-            classTipoDocumentos.getCorrelativoDocumento('PED',GlobalCoddoc)
-                .then((correlativo)=>{
-                    correlativoDoc = correlativo;
-                    
-                    document.getElementById('btnFinalizarPedido').innerHTML = '<i class="fal fa-paper-plane mr-1"></i>Enviar';
-                    document.getElementById('btnFinalizarPedido').disabled = false;
-
-                    funciones.Confirmacion('¿Está seguro que desea Finalizar este Pedido')
-                    .then((value)=>{
-                        if(value==true){
-                            setLog(`<label class="text-danger">Creando el pedido a enviar...</label>`,'rootWait');
-                            $('#modalWait').modal('show');
-                            
-                            //document.getElementById('btnFinalizarPedido').innerHTML = GlobalLoader;
-                        
-                            gettempDocproductos(GlobalUsuario)
-                            .then((response)=>{
-                                let docproductos_ped = response;
-                                
-                                setLog(`<label class="text-info">Pedido creado, enviado pedido...</label>`,'rootWait');
-                                //,,obs,usuario,codven
-                                axios.post('/ventas/insertventa', {
-                                    jsondocproductos:JSON.stringify(response),
-                                    codsucursal:GlobalCodSucursal,
-                                    empnit: GlobalEmpnit,
-                                    coddoc:coddoc,
-                                    correl: correlativoDoc,
-                                    anio:anio,
-                                    mes:mes,
-                                    dia:dia,
-                                    fecha:fecha,
-                                    fechaentrega:fechaentrega,
-                                    formaentrega:cmbTipoEntrega,
-                                    codbodega:codbodega,
-                                    codcliente: codcliente,
-                                    nomclie:ClienteNombre,
-                                    totalcosto:GlobalTotalCostoDocumento,
-                                    totalprecio:GlobalTotalDocumento,
-                                    nitclie:nit,
-                                    dirclie:dirclie,
-                                    obs:obs,
-                                    direntrega:direntrega,
-                                    usuario:GlobalUsuario,
-                                    codven:cmbVendedor.value,
-                                    lat:latdoc,
-                                    long:longdoc,
-                                    hora:hora
-                                })
-                                .then(async(response) => {
-                                    const data = response.data;
-                                    if (data.rowsAffected[0]==0){
-                                        
-                                        setLog(`<label class="text-info">No se logró Enviar este pedido, se intentará guardarlo en el teléfono</label>`,'rootWait');
-                                
-                                        //funciones.showToast('No se logró Enviar este pedido, se intentará guardarlo en el teléfono')
-                                        //funciones.AvisoError('No se logró Enviar este pedido, se intentará guardarlo en el teléfono');
-                                        
-                                        //guarda el pedido localmente
-                                        var datospedido = {
-                                            CODSUCURSAL:GlobalCodSucursal,
-                                            EMPNIT: GlobalEmpnit,
-                                            CODDOC:coddoc,
-                                            ANIO:anio,
-                                            MES:mes,
-                                            DIA:dia,
-                                            FECHA:fecha,
-                                            FECHAENTREGA:fechaentrega,
-                                            FORMAENTREGA:cmbTipoEntrega,
-                                            CODCLIE: codcliente,
-                                            NOMCLIE:ClienteNombre,
-                                            TOTALCOSTO:GlobalTotalCostoDocumento,
-                                            TOTALPRECIO:GlobalTotalDocumento,
-                                            NITCLIE:nit,
-                                            DIRCLIE:dirclie,
-                                            OBS:obs,
-                                            DIRENTREGA:direntrega,
-                                            USUARIO:GlobalUsuario,
-                                            CODVEN:Number(cmbVendedor.value),
-                                            LAT:latdoc,
-                                            LONG:longdoc,
-                                            JSONPRODUCTOS:JSON.stringify(docproductos_ped)
-                                        };
-                        
-                                        insertVenta(datospedido)
-                                        .then(async()=>{
-                                            
-                                        
-                                            //setLog(`<label class="text-info">No se logró Enviar este pedido, se intentará guardarlo en el teléfono</label>`,'rootWait');
-                                            //$('#modalWait').modal('hide');
-                                            //btnCerrarModalWait.click();
-                                            hideWaitForm();
-
-                                            document.getElementById('btnEntregaCancelar').click();
-                                                                                        
-                                            //actualiza la ubicación del empleado
-                                            await classEmpleados.updateMyLocation();
-                                            
-                                            //actualiza la última venta del cliente
-                                            apigen.updateClientesLastSale(nit,'VENTA');
-                                            
-                                            //elimina el temp ventas asociado al empleado
-                                            deleteTempVenta(GlobalUsuario)
-                    
-                                            
-                                            funciones.showToast('El pedido será guardado localmente, recuerde enviarlo');
-                                        
-                                            //prepara todo para un nuevo pedido
-                                            fcnNuevoPedido();
-                                        })
-                                        .catch(()=>{
-                                            hideWaitForm();
-                                            //btnCerrarModalWait.click();
-                                            //$('#modalWait').modal('hide');
-                                            funciones.AvisoError('No se pudo guardar este pedido')
-                                        })
-
-                                    }else{
-                                        
-                                        //$('#modalWait').modal('hide');
-                                        //btnCerrarModalWait.click();
-                                        hideWaitForm();
-
-                                        funciones.Aviso('Pedido Generado Exitosamente !!!')
-                                    
-                                        document.getElementById('btnEntregaCancelar').click();
-                                                            
-                                        //actualiza la ubicación del empleado
-                                        await classEmpleados.updateMyLocation();
-                                        
-                                        //actualiza la última venta del cliente
-                                        apigen.updateClientesLastSale(nit,'VENTA');
-                                        //elimina el temp ventas asociado al empleado
-                                        deleteTempVenta(GlobalUsuario)
-
-                                    
-                                        //prepara todo para un nuevo pedido
-                                        fcnNuevoPedido();
-                                    }
-                                }, (error) => {
-                                    console.log(error);
-
-                                    setLog(`<label class="text-info">Ha ocurrido un error y no se pudo enviar, se intentará guardar en el teléfono</label>`,'rootWait');
-                                
-                                    //funciones.showToast('Ha ocurrido un error y no se pudo enviar, se intentará guardar en el teléfono');
-                                    //$('#modalWait').modal('hide');
-                                    
-                                                        //guarda el pedido localmente
-                                                        var datospedido = {
-                                                            CODSUCURSAL:GlobalCodSucursal,
-                                                            EMPNIT: GlobalEmpnit,
-                                                            CODDOC:coddoc,
-                                                            ANIO:anio,
-                                                            MES:mes,
-                                                            DIA:dia,
-                                                            FECHA:fecha,
-                                                            FECHAENTREGA:fechaentrega,
-                                                            FORMAENTREGA:cmbTipoEntrega,
-                                                            CODCLIE: codcliente,
-                                                            NOMCLIE:ClienteNombre,
-                                                            TOTALCOSTO:GlobalTotalCostoDocumento,
-                                                            TOTALPRECIO:GlobalTotalDocumento,
-                                                            NITCLIE:nit,
-                                                            DIRCLIE:dirclie,
-                                                            OBS:obs,
-                                                            DIRENTREGA:direntrega,
-                                                            USUARIO:GlobalUsuario,
-                                                            CODVEN:Number(cmbVendedor.value),
-                                                            LAT:latdoc,
-                                                            LONG:longdoc,
-                                                            JSONPRODUCTOS:JSON.stringify(docproductos_ped)
-                                                        };
-                                        
-                                                        insertVenta(datospedido)
-                                                        .then(async()=>{
-                                                            //funciones.Aviso('El pedido será guardado localmente, recuerde enviarlo');
-                                                            //$('#modalWait').modal('hide'); 
-                                                            //btnCerrarModalWait.click();
-                                                            
-                                                            
-
-                                                            document.getElementById('btnEntregaCancelar').click();
-                                                            
-                                                            //actualiza la ubicación del empleado
-                                                            await classEmpleados.updateMyLocation();
-                                                            
-                                                            //actualiza la última venta del cliente
-                                                            apigen.updateClientesLastSale(nit,'VENTA');
-                                                            //elimina el temp ventas asociado al empleado
-                                                            deleteTempVenta(GlobalUsuario)
-                                                                                                                                                
-                                                            funciones.showToast('El pedido será guardado localmente, recuerde enviarlo');
-
-                                                            //prepara todo para un nuevo pedido
-                                                            fcnNuevoPedido();
-                                                            
-                                                            hideWaitForm();
-
-                                                        })
-                                                        .catch(()=>{
-                                                            hideWaitForm();
-                                                            //btnCerrarModalWait.click();
-                                                            //$('#modalWait').modal('hide'); 
-                                                            funciones.AvisoError('No se pudo guardar este pedido')
-                                                        }) 
-                                                    });        
-
-                            })
-                            .catch((error)=>{
-                                //$('#modalWait').modal('hide');
-                                hideWaitForm();
-                                //btnCerrarModalWait.click();
-                                funciones.AvisoError('No pude crear la tabla de productos del pedido ' + error);
-                                //$('#modalWait').modal('hide');
-                                //document.getElementById('btnFinalizarPedido').innerHTML = '<i class="fal fa-check mr-1"></i>Finalizar';
-                            })
-
-                            
-                        
-
-                        }
-                    })
-
-                })
-                .catch(()=>{
-                    console.log('pasa por aqui...');
-                    
-                    document.getElementById('btnFinalizarPedido').innerHTML = '<i class="fal fa-paper-plane mr-1"></i>Enviar';
-                    document.getElementById('btnFinalizarPedido').disabled = false;
-
-                    gettempDocproductos(GlobalUsuario)
-                    .then((response)=>{
-                        let docproductos_ped = response;
-
-                            //funciones.AvisoError('No se pudo obtener el número de correlativo del pedido, por favor, revise su conexión a internet')
-                            setLog(`<label class="text-info">No se logró Enviar este pedido, se intentará guardarlo en el teléfono</label>`,'rootWait');
-                            $('#modalWait').modal('show');
-                                        
-                                        //guarda el pedido localmente
-                                        var datospedido = {
-                                            CODSUCURSAL:GlobalCodSucursal,
-                                            EMPNIT: GlobalEmpnit,
-                                            CODDOC:coddoc,
-                                            ANIO:anio,
-                                            MES:mes,
-                                            DIA:dia,
-                                            FECHA:fecha,
-                                            FECHAENTREGA:fechaentrega,
-                                            FORMAENTREGA:cmbTipoEntrega,
-                                            CODCLIE: codcliente,
-                                            NOMCLIE:ClienteNombre,
-                                            TOTALCOSTO:GlobalTotalCostoDocumento,
-                                            TOTALPRECIO:GlobalTotalDocumento,
-                                            NITCLIE:nit,
-                                            DIRCLIE:dirclie,
-                                            OBS:obs,
-                                            DIRENTREGA:direntrega,
-                                            USUARIO:GlobalUsuario,
-                                            CODVEN:Number(cmbVendedor.value),
-                                            LAT:latdoc,
-                                            LONG:longdoc,
-                                            JSONPRODUCTOS:JSON.stringify(docproductos_ped)
-                                        };
-                                       
-                                        insertVenta(datospedido)
-                                        .then(async()=>{
-                                            
-                                        
-                                            //setLog(`<label class="text-info">No se logró Enviar este pedido, se intentará guardarlo en el teléfono</label>`,'rootWait');
-                                            //$('#modalWait').modal('hide');
-                                            //btnCerrarModalWait.click();
-                                            hideWaitForm();
-
-                                            document.getElementById('btnEntregaCancelar').click();
-                                                                                        
-                                            //actualiza la ubicación del empleado
-                                            await classEmpleados.updateMyLocation();
-                                            
-                                            //actualiza la última venta del cliente
-                                            apigen.updateClientesLastSale(nit,'VENTA');
-                                            
-                                            //elimina el temp ventas asociado al empleado
-                                            deleteTempVenta(GlobalUsuario)
-                    
-                                            
-                                            funciones.showToast('El pedido será guardado localmente, recuerde enviarlo');
-                                        
-                                            //prepara todo para un nuevo pedido
-                                            fcnNuevoPedido();
-                                        })
-                                        .catch(()=>{
-                                            hideWaitForm();
-                                            //btnCerrarModalWait.click();
-                                            //$('#modalWait').modal('hide');
-                                            funciones.AvisoError('No se pudo guardar este pedido')
-                                        })
-                    })
-                    
-                })
-
-    
 };

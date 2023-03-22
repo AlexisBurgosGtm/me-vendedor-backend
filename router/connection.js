@@ -21,13 +21,13 @@ let execute = {
 	Query : (res,sqlqry)=>{	
 		
 		//console.log('ejecutando consulta... ' + sqlqry);		
-
 		try {
 		  const pool1 = new sql.ConnectionPool(config, err => {
 			new sql.Request(pool1)
 			.query(sqlqry, (err, result) => {
 				if(err){
-					res.send(err.message)
+					console.log(err.message);
+					res.send('error');
 				}else{
 					res.send(result);
 				}					
@@ -35,11 +35,13 @@ let execute = {
 			sql.close();  
 		  })
 		  pool1.on('error', err => {
+				res.send('error');
 			  console.log('error sql = ' + err);
 			  sql.close();
 		  })
 		} catch (error) {
-		  res.send('Error al ejecutar la consulta: ' + error)   
+			console.log(error);
+		  res.send('error');   
 		  sql.close();
 		}
 	},
@@ -52,7 +54,8 @@ let execute = {
 			new sql.Request(pool1)
 			.query(sqlqry, (err, result) => {
 				if(err){
-					res.send(err.message)
+					//res.send(err.message)
+					res.send('error');
 				}else{
 					res.send(result);
 				}					
@@ -61,10 +64,13 @@ let execute = {
 		  })
 		  pool1.on('error', err => {
 			  console.log('error sql = ' + err);
+			  res.send('error');
 			  sql.close();
 		  })
 		} catch (error) {
-		  res.send('Error al ejecutar la consulta: ' + error)   
+		  //res.send('Error al ejecutar la consulta: ' + error) 
+		  console.log(error);  
+		  res.send('error'); 
 		  sql.close();
 		}
 	},

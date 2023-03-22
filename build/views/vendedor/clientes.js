@@ -598,8 +598,6 @@ function getEditCliente(codigo,nombre,direccion,telefono,lat,long,nit,tiponegoci
 
 };
 
-
-
 async function getHistorialCliente(codigo,nit,nombre){
     
     await apigen.vendedorHistorialCliente(codigo,'tblHistorial');
@@ -607,7 +605,6 @@ async function getHistorialCliente(codigo,nit,nombre){
     $('#ModalHistorialCliente').modal('show')
 
 };
-
 
 async function setRecordatorioVisita(codigo, nit, nombre, direccion){
     
@@ -632,7 +629,6 @@ async function setRecordatorioVisita(codigo, nit, nombre, direccion){
     })
     
 };
-
 
 async function addListeners(){
 
@@ -996,7 +992,93 @@ async function addListeners(){
         })
     });
 
+
     funciones.slideAnimationTabs();
+    
+    
+    apigen.config_get_codupdate(GlobalCodSucursal)
+    .then((code)=>{
+        SelectedCodUpdate = code;
+        selectDateDownload().then(()=>{
+                if(SelectedCodUpdate.toString()==SelectedLocalCodUpdate.toString()){
+                    funciones.showToast('Su catálogo de precios está actualizado')
+                }else{
+                    funciones.showToast('Catálogo de precios desactualizado, iniciando descarga');
+                    btnDescargarP.disabled = true;
+                    btnDescargarP.innerHTML = `<i class="fal fa-sync fa-spin"></i>`;
+    
+                    downloadProductos()
+                    .then((data)=>{
+                        funciones.showToast(`Productos descargados, guardándolos localmente`);
+                        deleteProductos()
+                        .then(()=>{
+                            let contador = 1;
+                            let totalrows = Number(data.rowsAffected[0]);
+                              
+                            data.recordset.map(async(rows)=>{
+                                var datosdb = {
+                                    CODSUCURSAL:rows.CODSUCURSAL,
+                                    CODPROD:rows.CODPROD,
+                                    DESPROD:rows.DESPROD,
+                                    CODMEDIDA:rows.CODMEDIDA,
+                                    EQUIVALE:rows.EQUIVALE,
+                                    COSTO:rows.COSTO,
+                                    PRECIO:rows.PRECIO,
+                                    PRECIOA:rows.PRECIOA,
+                                    PRECIOB:rows.PRECIOB,
+                                    PRECIOC:rows.PRECIOC,
+                                    DESMARCA:rows.DESMARCA,
+                                    EXENTO:rows.EXENTO,
+                                    EXISTENCIA:rows.EXISTENCIA,
+                                    DESPROD3:rows.DESPROD3
+                                }                
+                                var noOfRowsInserted = await connection.insert({
+                                    into: "productos",
+                                    values: [datosdb], //you can insert multiple values at a time
+                                });
+                                if (noOfRowsInserted > 0) {
+                                    let porc = (Number(contador) / Number(totalrows)) * 100;
+                                    //setLog(`<label>Productos agregados: ${contador} de ${totalrows} (${porc.toFixed(2)}%)</label>`,'rootWait')
+                                    contador += 1;
+                                    if(totalrows==contador){
+                                       
+                                        funciones.Aviso('Productos descargados exitosamente!!');
+                                       
+                                        btnDescargarP.disabled = false;
+                                        btnDescargarP.innerHTML = `<i class="fal fa-download"></i>`;
+    
+                                        try {
+                                            getTotalProductos('lbTotalProductos');
+                                        } catch (error) {
+                                            
+                                        }
+                                    }
+                                }
+                            });
+                        })
+                        .catch(()=>{
+                          
+                           funciones.AvisoError('No se pudieron eliminar los productos previos');
+                           btnDescargarP.disabled = false;
+                           btnDescargarP.innerHTML = `<i class="fal fa-download"></i>`;
+    
+                        })
+                    })
+                    .catch(()=>{
+                       
+                        funciones.AvisoError('No se pudieron descargar los productos');
+                        btnDescargarP.disabled = false;
+                        btnDescargarP.innerHTML = `<i class="fal fa-download"></i>`;
+    
+                    })
+
+                }
+        });
+        //console.log('downloaded: ' + SelectedCodUpdate);
+        //console.log('local: ' + SelectedLocalCodUpdate);
+    })
+    .catch(()=>{SelectedCodUpdate='NOCODE'});
+    
     
 };
 
