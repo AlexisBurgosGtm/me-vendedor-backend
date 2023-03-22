@@ -1577,7 +1577,7 @@ async function fcnFinalizarPedido(){
                             //if (data.rowsAffected[0]==0){
                             
                             if(data.toString()=='error'){
-                                funciones.beep();
+                                //funciones.beep();
                                 setLog(`<label class="text-info">No se logró Enviar este pedido, se intentará guardarlo en el teléfono</label>`,'rootWait');
                                                     
                                 insertVenta(datospedido)

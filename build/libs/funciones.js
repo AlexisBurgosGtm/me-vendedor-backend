@@ -1,7 +1,6 @@
 let funciones = {
-    beep(){
-       let duration = 500;
-       let type = 1;
+    beep(duration,type,finishedCallback){
+  
       
           var ctxClass = window.audioContext ||window.AudioContext || window.AudioContext || window.webkitAudioContext
           var ctx = new ctxClass();
