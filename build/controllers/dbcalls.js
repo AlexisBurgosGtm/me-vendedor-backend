@@ -701,9 +701,6 @@ function selectVentasPendientes_old(usuario) {
         var response = await connection_old.select({
 
             from: "documentos",
-            where: {
-                    USUARIO: usuario
-                },
             order: { by: 'ID', type: 'asc' }
         });
         resolve(response)
@@ -801,6 +798,7 @@ function dbCargarPedidosPendientes_old(){
     
     selectVentasPendientes_old(GlobalUsuario)
     .then((response)=>{
+        console.log(response);
         let container = document.getElementById('tblPedidosPendientes');
         container.innerHTML = GlobalLoader;
 

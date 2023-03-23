@@ -95,6 +95,25 @@ window.onpopstate = function(event) {
     }
 }
 
+console.log('agregando listener a cargar db pedidos')
+let cmbTipoDb = document.getElementById('cmbTipoDb');
+cmbTipoDb.addEventListener('change',()=>{
+
+      try {
+          if(cmbTipoDb.value=='ACTUAL'){
+              console.log('cargando pedidos actuales...')
+              dbCargarPedidosPendientes();
+          }else{
+              console.log('cargando pedidos viejos...')
+              dbCargarPedidosPendientes_old();
+          }
+      } catch (error) {
+        
+      }
+          
+          
+      
+})
 
 //VENTANA DE PEDIDOS PENDIENTES
 let btnPedidosPend = document.getElementById('btnPedidosPend');
@@ -103,17 +122,7 @@ btnPedidosPend.addEventListener('click',()=>{
     dbCargarPedidosPendientes();
 });
 
-let cmbTipoDb = document.getElementById('cmbTipoDb')
-cmbTipoDb.addEventListener('change',()=>{
 
-  if(cmbTipoDb.value=='ACTUAL'){
-      dbCargarPedidosPendientes();
-  }else{
-    dbCargarPedidosPendientes_old();
-  }
-  
-  
-})
 
 //deshabilita los mensajes de consola
 //logger.disableLogger();

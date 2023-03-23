@@ -176,7 +176,7 @@ async function connectDb_old(){
     }
     else{
         //alert('Connection is opened');
-      
+      console.log('db vieja conectada...')
     }
 
 }

@@ -1,4 +1,4 @@
-let versionapp = 'Versión 03.2023.22';
+let versionapp = 'Versión 03.2023.22.1';
 
 let root = document.getElementById('root');
 let rootMenu = document.getElementById('rootMenu');
