@@ -676,9 +676,29 @@ function BACKUP_insertVenta(datos){
 
 //carga el json con la lista de pedidos pendientes
 function selectVentasPendientes(usuario) {
+
+
     
     return new Promise(async(resolve,reject)=>{
         var response = await connection.select({
+
+            from: "documentos",
+            where: {
+                    USUARIO: usuario
+                },
+            order: { by: 'ID', type: 'asc' }
+        });
+        resolve(response)
+    });
+};
+
+//carga pedidos pendientes de la base de datos previa
+function selectVentasPendientes_old(usuario) {
+
+    
+    
+    return new Promise(async(resolve,reject)=>{
+        var response = await connection_old.select({
 
             from: "documentos",
             where: {
@@ -694,6 +714,92 @@ function selectVentasPendientes(usuario) {
 function dbCargarPedidosPendientes(){
     
     selectVentasPendientes(GlobalUsuario)
+    .then((response)=>{
+        let container = document.getElementById('tblPedidosPendientes');
+        container.innerHTML = GlobalLoader;
+
+        let containerTotal = document.getElementById('lbTotalVentaPendiente');
+        containerTotal.innerHTML = '--.--';
+
+        let containerPeds = document.getElementById('lbTotalVentaPendientePeds');
+        containerPeds.innerHTML = '--'
+        
+        let str = '';
+        let contador = 0;
+        let totalventa = 0;
+
+        response.map((rs)=>{
+            let btnPed = `btnE${rs.ID}`;
+            contador = contador + 1;
+            totalventa += Number(rs.TOTALPRECIO);
+            str = str + `
+
+                        <div class="card card-rounded shadow">
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <button class="btn btn-sm btn-danger shadow hand" onclick="dbDeletePedido('${rs.ID}');">
+                                        <i class="fal fa-trash"></i>
+                                    </button>
+                                    <label class="negrita text-info">${rs.NOMCLIE}</label>
+                                    <br>
+                                    <small>${rs.DIRCLIE}</small>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-group">
+                                            <label>Fecha</label>
+                                            <br>
+                                            ${rs.FECHA}
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-group">
+                                            <label>Importe</label>
+                                            <br>
+                                            <label class="negrita text-danger">${funciones.setMoneda(rs.TOTALPRECIO,'Q')}</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-6">
+                                        <button class="btn btn-info btn-sm" onclick="getDbDetallePedido(${rs.ID},'${rs.NOMCLIE}');">
+                                            <i class="fal fa-search"></i>Detalles
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-success btn-sm" id="${btnPed}" onclick="dbSendPedido(${rs.ID},'${btnPed}');">
+                                            <i class="fal fa-paper-plane"></i>Enviar
+                                        </button>
+                                    </div>
+                                </div>
+                                <small>Gps:${rs.LAT},${rs.LONG}</small>
+                            </div>
+                        </div>
+                        <hr class="solid">
+
+                        `    
+        })
+        container.innerHTML = str;
+        containerTotal.innerText = funciones.setMoneda(totalventa,'');
+        containerPeds.innerHTML = contador;
+        
+        if(Number(contador)>0){
+            btnPedidosPend.className = 'btn btn-danger btn-lg btn-icon rounded-circle shadow';
+        }else{
+            btnPedidosPend.className = 'btn btn-outline-secondary btn-lg btn-icon rounded-circle shadow';
+        }
+        
+        btnPedidosPend.innerHTML = `<i class="fal fa-bell"></i>${contador}`;
+        
+
+    });
+};
+
+function dbCargarPedidosPendientes_old(){
+    
+    selectVentasPendientes_old(GlobalUsuario)
     .then((response)=>{
         let container = document.getElementById('tblPedidosPendientes');
         container.innerHTML = GlobalLoader;

@@ -1,4 +1,5 @@
 const DbName = "mercadosefectivosoffline9";
+const DbName_old = "mercadosefectivosoffline7";
 
 var tblDocumentos = {
     name: 'documentos',
@@ -140,9 +141,15 @@ var database = {
     name: DbName,
     tables: [tblDocumentos,tblProductos,tblClientes,tblTempventas,tblCredenciales,tempcenso]
 };
+
+var database_old = {
+    name: DbName_old,
+    tables: [tblDocumentos,tblProductos,tblClientes,tblTempventas,tblCredenciales,tempcenso]
+};
  
 // initiate jsstore connection
 var connection = new JsStore.Connection();
+var connection_old = new JsStore.Connection();
 
 async function connectDb(){
    
@@ -158,5 +165,22 @@ async function connectDb(){
         }
     
 }
+
+async function connectDb_old(){
+   
+    var isDbCreatedOld = await connection_old.initDb(database_old);
+    // isDbCreated will be true when database will be initiated for first time
+    if(isDbCreatedOld){
+        //alert('Db Created & connection is opened');
+       
+    }
+    else{
+        //alert('Connection is opened');
+      
+    }
+
+}
 //inicia la conexión a la db
 connectDb();
+
+connectDb_old(); //conecta a la versión vieja de la base de datos
