@@ -30,8 +30,6 @@ app.use(cors({
 }));
 //origin: ['https://www.section.io', 'https://www.google.com/']
 
-var path = __dirname + '/'
-
 //manejador de rutas
 router.use(function (req,res,next) {
   /*
