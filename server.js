@@ -17,13 +17,18 @@ let routerUsuarios = require('./router/routerUsuarios');
 let routerCenso = require('./router/routerCenso');
 
 var http = require('http').Server(app);
-var io = require('socket.io')(http);
+//var io = require('socket.io')(http);
+var io = require('socket.io')(http, { cors: { origin: '*' } });
 
-const PORT = process.env.PORT || 4300;
+const PORT = process.env.PORT || 9000;
+const cors = require('cors');
 
 app.use(bodyParser.json());
 
-app.use(express.static('build'));
+app.use(cors({
+  origin: '*'
+}));
+//origin: ['https://www.section.io', 'https://www.google.com/']
 
 var path = __dirname + '/'
 
@@ -40,17 +45,17 @@ router.use(function (req,res,next) {
       res.setHeader('Access-Control-Allow-Credentials', true);
   */
   //console.log("/" + req.toString());
+  console.log('Llamada url:');
+  console.log(req);
+
   next();
 });
 
 app.get("/",function(req,res){
-  execute.start();
-	res.sendFile(path + 'index.html');
+  res.send('Hola...')  
 }); 
 
-app.get("/login",function(req,res){
-  res.redirect('/');
-}); 
+
 
 app.get("/test_service",function(req,res){
   res.send('ONLINE')
